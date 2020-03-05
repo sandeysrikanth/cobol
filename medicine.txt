@@ -1,0 +1,277 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID.  CA11E060.
+      *
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+      *
+            SELECT EMP1  ASSIGN TO INMEDPS
+            ORGANIZATION IS SEQUENTIAL
+            ACCESS MODE  IS SEQUENTIAL
+            FILE STATUS  IS WS-FS1.
+      *
+            SELECT EMP2  ASSIGN TO OUTMEDKS
+            ORGANIZATION IS  INDEXED
+            ACCESS MODE  IS  SEQUENTIAL
+            RECORD KEY   IS  OMED-CODE
+            FILE STATUS  IS  WS-FS2.
+      *
+            SELECT EMP3 ASSIGN TO OUTMEDS2
+            ORGANIZATION IS SEQUENTIAL
+            ACCESS MODE IS SEQUENTIAL
+            FILE STATUS IS WS-FS3.
+      *
+            SELECT EMP4 ASSIGN TO OUTMEDER
+            ORGANIZATION IS SEQUENTIAL
+            ACCESS MODE IS SEQUENTIAL
+            FILE STATUS IS WS-FS4.
+      *
+       DATA DIVISION.
+       FILE SECTION.
+      *
+       FD EMP1.
+       01 INREC.
+            05 MED-CODE             PIC X(03).
+            05 FILLER               PIC X(1).
+            05 DOS                  PIC 9(1).
+            05 FILLER               PIC X(1).
+            05 QUA                  PIC 9(3).
+            05 FILLER               PIC X(1).
+            05 EXP-STATUS           PIC X(7).
+            05 FILLER               PIC X(1).
+            05 RATE                 PIC 9(02).9(2).
+            05 FILLER               PIC X(57).
+      *
+       FD EMP2.
+       01 OUTREC.
+            05 OMED-CODE PIC X(03).
+            05 FILLER PIC X(1) VALUE ' '.
+            05 OQUA PIC 9(3).
+            05 FILLER PIC X(1) VALUE ' '.
+            05 OEXP-STATUS PIC X(7).
+            05 FILLER PIC X(1) VALUE ' '.
+            05 ORDER-STATUS PIC X(07).
+            05 FILLER PIC X(1) VALUE ' '.
+            05 CLAS PIC X(04).
+            05 FILLER PIC X(1) VALUE ' '.
+            05 ORATE PIC 9(02).9(2).
+            05 FILLER PIC X(1) VALUE ' '.
+            05 DISC-NO PIC 9(2).9(2).
+            05 FILLER PIC X(1) VALUE ' '.
+            05 TOT-PRICE PIC 9(5).9(2).
+            05 FILLER PIC X(31) VALUE ALL SPACES.
+      *
+       FD EMP3.
+       01 SCH.
+            05 SMED-CODE PIC X(03).
+            05 FILLER PIC X(1) VALUE ' '.
+            05 SQUA PIC 9(3).
+            05 FILLER PIC X(1) VALUE ' '.
+            05 SEXP-STATUS PIC X(7).
+            05 FILLER PIC X(1) VALUE ' '.
+            05 SRDER-STATUS PIC X(07).
+            05 FILLER PIC X(1) VALUE ' '.
+            05 SLAS PIC X(04).
+            05 FILLER PIC X(1) VALUE ' '.
+            05 SATE PIC 9(02).9(2).
+            05 FILLER PIC X(1) VALUE ' '.
+            05 SISC-NO PIC 9(2).9(2).
+            05 FILLER PIC X(1) VALUE ' '.
+            05 SOT-PRICE PIC 9(5).9(2).
+            05 FILLER PIC X(31) VALUE ALL SPACES.
+       FD EMP4.
+       01 ERRREC.
+            05 EMED-CODE PIC X(03).
+            05 FILLER PIC X(1) VALUE ' '.
+            05 EDOS PIC 9(1).
+            05 FILLER PIC X(1) VALUE ' '.
+            05 EQUA PIC 9(3).
+            05 FILLER PIC X(1) VALUE ' '.
+            05 EEXP-STATUS PIC X(7).
+            05 FILLER PIC X(1) VALUE ' '.
+            05 ERATE PIC 9(02).9(2).
+            05 FILLER PIC X(57) VALUE ALL SPACES.
+      *
+       WORKING-STORAGE SECTION.
+       01 WS-FS1 PIC X(02).
+            88 FS1-SUC VALUE '00'.
+            88 FS1-EOF VALUE '10'.
+       01 WS-FS2 PIC X(02).
+            88 FS2-SUC VALUE '00'.
+       01 WS-FS3 PIC X(02).
+            88 FS3-SUC VALUE '00'.
+       01 WS-FS4 PIC X(02).
+            88 FS4-SUC VALUE '00'.
+      *
+       77 WS-SUB PIC 9(2).
+       77 WS-ORDER-STATUS PIC X(07).
+       77 WS-CLASS PIC X(04).
+       77 WS-NEWQUA PIC 9(3).
+       77 WS-DISC PIC 9(2)V9(2).
+       77 WS-RATE PIC 9(2)V9(2).
+       77 WS-TOT-PRICE PIC 9(5)V9(2).
+       01 WS-TAB      VALUE SPACES.
+            05 WS-ARRAY OCCURS 15 TIMES.
+               10 A-CODE PIC X(03).
+               10 FILLER PIC X(1).
+               10 A-QUA PIC 9(3).
+               10 FILLER PIC X(1).
+               10 A-EXP-STATUS PIC X(7).
+               10 FILLER PIC X(1).
+               10 AORDER-STATUS PIC X(07).
+               10 FILLER PIC X(1).
+               10 ACLAS PIC X(04).
+               10 FILLER PIC X(1).
+               10 ARATE PIC 9(02).9(2).
+               10 FILLER PIC X(1).
+               10 ADISC-NO PIC 9(2).9(2).
+               10 FILLER PIC X(1).
+               10 ATOT-PRICE PIC 9(5).9(2).
+               10 FILLER PIC X(38).
+      *
+       PROCEDURE DIVISION.
+      *
+       0000-MAIN-PARA.
+            PERFORM 1000-INTIAL-PARA THRU 1000-INTIAL-EXIT.
+            PERFORM 1000-OPEN-PARA   THRU 1000-OPEN-EXIT.
+            PERFORM 2000-READ-PARA   THRU 2000-READ-EXIT UNTIL FS1-EOF.
+            PERFORM 3000-CLOS-PARA   THRU 3000-CLOS-EXIT.
+            STOP RUN.
+      *
+       1000-INTIAL-PARA.
+            INITIALIZE WS-FS1.
+            INITIALIZE WS-FS2.
+            INITIALIZE WS-FS3.
+            INITIALIZE WS-FS4.
+      *
+       1000-INTIAL-EXIT.
+            EXIT.
+      *
+       1000-OPEN-PARA.
+            OPEN INPUT  EMP1
+                 OUTPUT EMP2
+                 OUTPUT EMP3
+                 OUTPUT EMP4.
+            IF FS1-SUC AND FS2-SUC AND FS3-SUC AND FS4-SUC
+               DISPLAY 'OPEN OVER'
+            ELSE
+               DISPLAY 'OPEN ERROR FS1 ' WS-FS1
+               DISPLAY 'OPEN ERROR FS2 ' WS-FS2
+               DISPLAY 'OPEN ERROR FS3 ' WS-FS3
+               DISPLAY 'OPEN ERROR FS4 ' WS-FS4
+            END-IF.
+      *
+       1000-OPEN-EXIT.
+            EXIT.
+      *
+       2000-READ-PARA.
+            READ EMP1.
+            IF FS1-SUC
+               DISPLAY 'READ SUCCESS'
+               PERFORM 2000-VALID-PARA THRU 2000-VALID-EXIT
+            ELSE
+               DISPLAY 'READ ERROR' WS-FS1
+            END-IF.
+      *
+       2000-READ-EXIT.
+            EXIT.
+      *
+       2000-VALID-PARA.
+            EVALUATE TRUE
+              WHEN MED-CODE IS NOT = ' ' AND DOS IS = 'L' OR 'M' OR 'H'
+                      AND
+                   QUA IS NUMERIC AND EXP-STATUS IS = 'EXP' OR 'NOT-EXP'
+                   AND RATE(1:2) IS NUMERIC AND RATE (4:2) IS NUMERIC
+                 DISPLAY 'VALIDATION PASS'
+                 PERFORM 2000-WRT-PARA THRU 2000-WRT-EXIT
+              WHEN OTHER
+                 DISPLAY 'VALIDATION FAIL'
+                 PERFORM  2000-ERR-PARA THRU 2000-ERR-EXIT
+            END-EVALUATE.
+      *
+       2000-VALID-EXIT.
+            EXIT.
+      *
+       2000-WRT-PARA.
+            EVALUATE TRUE
+              WHEN QUA < 100 AND EXP-STATUS = 'NOT-EXP'
+                   MOVE 250 TO WS-NEWQUA
+                   MOVE 'REORDER' TO WS-ORDER-STATUS
+                   PERFORM 2100-WRT1-PARA THRU 2100-WRT1-EXIT
+              WHEN QUA < 100 AND EXP-STATUS = 'EXP'
+                   MOVE 050 TO WS-NEWQUA
+                   MOVE 'REPLACE' TO WS-ORDER-STATUS
+                   PERFORM 2100-WRT1-PARA THRU 2100-WRT1-EXIT
+              WHEN QUA > 100 AND EXP-STATUS = 'EXP'
+                   MOVE 000 TO WS-NEWQUA
+                   MOVE 'STPSELL' TO WS-ORDER-STATUS
+                   PERFORM 2100-WRT1-PARA THRU 2100-WRT1-EXIT
+              WHEN OTHER
+                   CONTINUE
+            END-EVALUATE.
+       2000-WRT-EXIT.
+            EXIT.
+       2100-WRT1-PARA.
+      *
+            EVALUATE TRUE
+              WHEN DOS = 'L'
+                   MOVE 'SCH1' TO WS-CLASS
+              WHEN DOS = 'M'
+                   MOVE 'SCH2' TO WS-CLASS
+              WHEN DOS = 'H'
+                   MOVE 'SCH3' TO WS-CLASS
+              WHEN OTHER
+                   MOVE SPACES TO WS-CLASS
+            END-EVALUATE.
+      *
+            MOVE RATE TO WS-RATE.
+            COMPUTE WS-DISC = WS-RATE - (WS-RATE * 20 / 100).
+            COMPUTE WS-TOT-PRICE = WS-NEWQUA * WS-DISC.
+            ADD 1 TO WS-SUB.
+            MOVE MED-CODE TO A-CODE(WS-SUB).
+            MOVE WS-NEWQUA TO A-QUA(WS-SUB).
+            MOVE EXP-STATUS TO A-EXP-STATUS(WS-SUB).
+            MOVE WS-ORDER-STATUS TO AORDER-STATUS(WS-SUB).
+            MOVE WS-CLASS TO ACLAS(WS-SUB).
+            MOVE WS-RATE TO ARATE(WS-SUB).
+            MOVE WS-DISC TO ADISC-NO(WS-SUB).
+            MOVE WS-TOT-PRICE TO ATOT-PRICE(WS-SUB).
+            IF ACLAS(WS-SUB) = 'SCH1' OR 'SCH3'
+               MOVE WS-ARRAY(WS-SUB) TO OUTREC
+               WRITE OUTREC
+               IF FS2-SUC
+                  DISPLAY 'WRITE COMPLTED'
+               ELSE
+                  DISPLAY 'WRITE ERROR' WS-FS2
+               END-IF
+            ELSE
+               MOVE WS-ARRAY(WS-SUB) TO SCH
+               WRITE SCH
+               IF FS3-SUC
+                  DISPLAY 'WRITE COMPLTED'
+               ELSE
+                  DISPLAY 'WRITE ERROR' WS-FS3
+               END-IF
+            END-IF.
+       2100-WRT1-EXIT.
+            EXIT.
+       2000-ERR-PARA.
+            MOVE INREC TO ERRREC.
+            WRITE ERRREC.
+            IF FS4-SUC
+               DISPLAY 'ERROR WRITE '
+            ELSE
+               DISPLAY 'ERROR WRITE' WS-FS4
+            END-IF.
+       2000-ERR-EXIT.
+            EXIT.
+       3000-CLOS-PARA.
+            CLOSE EMP1 CLOSE EMP2 CLOSE EMP3 CLOSE EMP4.
+            IF FS1-SUC AND FS2-SUC AND FS3-SUC AND FS4-SUC
+               DISPLAY 'CLOSE OEVR'
+            ELSE
+               DISPLAY 'CLOSE ERROR'
+            END-IF.
+       3000-CLOS-EXIT.
+            EXIT.
+

@@ -1,0 +1,282 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID.  CA11R060.
+      *
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+      *
+               SELECT  INPUTFILE  ASSIGN TO  INPNOMPS
+               ORGANIZATION       IS SEQUENTIAL
+               ACCESS             IS SEQUENTIAL
+               FILE STATUS        IS WS-FS1.
+      *
+               SELECT  OUTPUTFILE ASSIGN TO  OUTNOMKS
+               ORGANIZATION       IS INDEXED
+               ACCESS             IS SEQUENTIAL
+               RECORD  KEY        IS OUTPUT-NOMINEE-ID
+               FILE STATUS        IS WS-FS2.
+      *
+               SELECT  ERRORFILE  ASSIGN TO  ERRNOMPS
+               ORGANIZATION       IS SEQUENTIAL
+               ACCESS             IS SEQUENTIAL
+               FILE STATUS        IS WS-FS3.
+      *
+               SELECT  OUTPUTFILE1 ASSIGN TO   ECLNOMPS
+               ORGANIZATION        IS SEQUENTIAL
+               ACCESS              IS SEQUENTIAL
+               FILE STATUS         IS WS-FS4.
+      *
+               SELECT  OUTPUTFILE2 ASSIGN TO  NCLNOMPS
+               ORGANIZATION        IS SEQUENTIAL
+               ACCESS              IS SEQUENTIAL
+               FILE STATUS         IS WS-FS5.
+       DATA DIVISION.
+       FILE SECTION.
+       FD INPUTFILE.
+       01 INPUTRECORD.
+               05 INPUT-NOMINEE-ID           PIC X(5).
+               05 FILLER                     PIC X(1).
+               05 INPUT-DOB                  PIC X(10).
+               05 FILLER                     PIC X(1).
+               05 INPUT-NOM-REL              PIC X(4).
+               05 FILLER                     PIC X(1).
+               05 INPUT-ACC-INC              PIC 9(6).9(2).
+               05 FILLER                     PIC X(49) VALUE ALL SPACES.
+       FD OUTPUTFILE.
+       01 OUTPUTRECORD.
+               05 OUTPUT-NOMINEE-ID          PIC X(5).
+               05 FILLER                     PIC X(1).
+               05 OUTPUT-DOB                 PIC X(10).
+               05 FILLER                     PIC X(1).
+               05 OUTPUT-NOM-REL             PIC X(4).
+               05 FILLER                     PIC X(1).
+               05 OUTPUT-ACC-INC             PIC 9(6).9(2).
+               05 FILLER                     PIC X(1).
+               05 OUTPUT-DISC-AMT            PIC 9(6).
+               05 FILLER                     PIC X(1).
+               05 OUTPUT-AMT-PAID            PIC 9(6).9(2).
+               05 FILLER                     PIC X(1).
+               05 OUTPUT-CLAIM-ELIG          PIC X(1).
+               05 FILLER                     PIC X(30) VALUE ALL SPACES.
+       FD ERRORFILE.
+       01 ERRORRECORD.
+               05 ERROR-NOMINEE-ID           PIC X(5).
+               05 FILLER                     PIC X(1).
+               05 ERROR-DOB                  PIC X(10).
+               05 FILLER                     PIC X(1).
+               05 ERROR-NOM-REL              PIC X(4).
+               05 FILLER                     PIC X(1).
+               05 ERROR-ACC-INC              PIC 9(6).9(2).
+               05 FILLER                     PIC X(1).
+               05 ERROR-FIELD                PIC X(15).
+               05 FILLER                     PIC X(33) VALUE ALL SPACES.
+       FD OUTPUTFILE1.
+       01 OUTPUTRECORD1.
+               05 OUTPUT1-NOMINEE-ID         PIC X(5).
+               05 FILLER                     PIC X(1).
+               05 OUTPUT1-DOB                PIC X(10).
+               05 FILLER                     PIC X(1).
+               05 OUTPUT1-NOM-REL            PIC X(4).
+               05 FILLER                     PIC X(1).
+               05 OUTPUT1-ACC-INC            PIC 9(6).9(2).
+               05 FILLER                     PIC X(1).
+               05 OUTPUT1-CLAIM-ELIG         PIC X(1).
+               05 FILLER                     PIC X(47) VALUE ALL SPACES.
+       FD OUTPUTFILE2.
+       01 OUTPUTRECORD2.
+               05 OUTPUT2-NOMINEE-ID         PIC X(5).
+               05 FILLER                     PIC X(1).
+               05 OUTPUT2-DOB                PIC X(10).
+               05 FILLER                     PIC X(1).
+               05 OUTPUT2-NOM-REL            PIC X(4).
+               05 FILLER                     PIC X(1).
+               05 OUTPUT2-ACC-INC            PIC 9(6).9(2).
+               05 FILLER                     PIC X(1).
+               05 OUTPUT2-CLAIM-ELIG         PIC X(1).
+               05 FILLER                     PIC X(47) VALUE ALL SPACES.
+       WORKING-STORAGE SECTION.
+       01 WS-FS1                             PIC X(02).
+               88 FS1-SUC                    VALUE '00'.
+               88 FS1-EOF                    VALUE '10'.
+       01 WS-FS2                             PIC X(02).
+               88 FS2-SUC                    VALUE '00'.
+       01 WS-FS3                             PIC X(02).
+               88 FS3-SUC                    VALUE '00'.
+       01 WS-FS4                             PIC X(02).
+               88 FS4-SUC                    VALUE '00'.
+       01 WS-FS5                             PIC X(02).
+               88 FS5-SUC                    VALUE '00'.
+       01 WS-SUB                             PIC 9(2).
+       01 WS-ACC-INC                         PIC 9(6)V9(2).
+       01 WS-OUT-ACC-INC                     PIC 9(6)V9(2).
+       01 WS-DISC-AMT                         PIC 9(6).
+       01 WS-AMT-PAID                        PIC 9(6)V9(2).
+       01 WS-TAB .
+               05 WS-ARRAY OCCURS 200 TIMES.
+                 10 AS-NOMINEE-ID         PIC X(5).
+                 10 FILLER                     PIC X(1).
+                 10 AS-DOB                PIC X(10).
+                 10 FILLER                     PIC X(1).
+                 10 AS-NOM-REL            PIC X(4).
+                 10 FILLER                     PIC X(1).
+                 10 AS-ACC-INC            PIC 9(6).9(2).
+                 10 FILLER                     PIC X(1).
+                 10 AS-CLAIM-ELIG         PIC X(1).
+                 10 FILLER                     PIC X(47)
+                    VALUE ALL SPACES.
+       PROCEDURE DIVISION.
+       0000-MAIN-PARA.
+             PERFORM 1000-INTIAL-PARA THRU 1000-INTIAL-EXIT.
+             PERFORM 1100-OPEN-PARA   THRU 1100-OPEN-EXIT.
+             PERFORM 2000-READ-PARA   THRU 2000-READ-EXIT UNTIL FS1-EOF.
+             PERFORM 3000-CLOS-PARA   THRU 3000-CLOS-EXIT.
+             STOP RUN.
+       1000-INTIAL-PARA.
+           INITIALIZE WS-FS1.
+           INITIALIZE WS-FS2.
+           INITIALIZE WS-FS3.
+           INITIALIZE WS-FS4.
+           INITIALIZE WS-FS5.
+       1000-INTIAL-EXIT.
+           EXIT.
+       1100-OPEN-PARA.
+           OPEN INPUT INPUTFILE
+                OUTPUT OUTPUTFILE
+                OUTPUT OUTPUTFILE1
+                OUTPUT OUTPUTFILE2
+                OUTPUT ERRORFILE.
+                MOVE SPACES TO OUTPUTRECORD.
+           IF FS1-SUC AND FS2-SUC AND FS3-SUC AND FS4-SUC AND FS5-SUC
+               DISPLAY 'OPEN SUCCESS ALL FILES'
+           ELSE
+               DISPLAY 'OPEN ERROR WS-FS1' WS-FS1
+               DISPLAY 'OPEN ERROR WS-FS2' WS-FS2
+               DISPLAY 'OPEN ERROR WS-FS3' WS-FS3
+               DISPLAY 'OPEN ERROR WS-FS4' WS-FS4
+               DISPLAY 'OPEN ERROR WS-FS5' WS-FS5
+           END-IF.
+       1100-OPEN-EXIT.
+           EXIT.
+       2000-READ-PARA.
+           READ INPUTFILE.
+           IF FS1-SUC
+              DISPLAY 'READ SUCCESS'
+              PERFORM 2100-VALID-PARA THRU 2100-VALID-EXIT
+           ELSE
+              DISPLAY 'READ ERROR' WS-FS1
+           END-IF.
+       2000-READ-EXIT.
+           EXIT.
+       2100-VALID-PARA.
+           EVALUATE TRUE
+            WHEN INPUT-DOB(1:2) IS NUMERIC AND
+                INPUT-DOB(4:2) IS NUMERIC AND
+                INPUT-DOB(7:4) IS NUMERIC AND
+                INPUT-NOM-REL IS NOT = ' ' AND
+                INPUT-ACC-INC(1:6) IS NUMERIC AND
+                INPUT-ACC-INC(8:2) IS NUMERIC
+             DISPLAY 'VALIDATION PASS'
+             PERFORM 2200-WRITE-PARA THRU 2200-WRITE-EXIT
+            WHEN OTHER
+             DISPLAY 'VALIDATION FAIL'
+             PERFORM 2300-ERROR-PARA THRU 2300-ERROR-EXIT
+           END-EVALUATE.
+       2100-VALID-EXIT.
+           EXIT.
+       2200-WRITE-PARA.
+           IF INPUT-DOB(7:4) <= '1985'
+              MOVE 'N' TO OUTPUT-CLAIM-ELIG
+           ELSE
+              MOVE 'Y' TO OUTPUT-CLAIM-ELIG
+           END-IF.
+           MOVE INPUT-ACC-INC TO WS-ACC-INC.
+           CALL 'CA21R060' USING WS-ACC-INC, WS-AMT-PAID, WS-DISC-AMT.
+           EVALUATE TRUE
+            WHEN INPUT-NOM-REL = 'SELF'
+             COMPUTE WS-OUT-ACC-INC = WS-ACC-INC + (WS-AMT-PAID * 0.4)
+            WHEN INPUT-NOM-REL = 'HUS'
+             COMPUTE WS-OUT-ACC-INC = WS-ACC-INC + (WS-AMT-PAID * 0.3)
+            WHEN OTHER
+             COMPUTE WS-OUT-ACC-INC = WS-ACC-INC + (WS-AMT-PAID * 0.3)
+           END-EVALUATE.
+           MOVE WS-AMT-PAID TO OUTPUT-AMT-PAID.
+           MOVE WS-DISC-AMT TO OUTPUT-DISC-AMT.
+           MOVE WS-OUT-ACC-INC TO OUTPUT-ACC-INC.
+           MOVE INPUT-NOMINEE-ID  TO OUTPUT-NOMINEE-ID.
+           MOVE INPUT-DOB TO OUTPUT-DOB.
+           MOVE INPUT-NOM-REL TO OUTPUT-NOM-REL.
+           WRITE OUTPUTRECORD.
+           IF FS2-SUC
+              DISPLAY 'WRITE COMPLETD'
+              PERFORM 2400-ARRAY-PARA THRU 2400-ARRAY-EXIT
+           ELSE
+              DISPLAY 'WRITE ERROR' WS-FS2
+           END-IF.
+       2200-WRITE-EXIT.
+           EXIT.
+       2300-ERROR-PARA.
+           EVALUATE TRUE
+            WHEN INPUT-NOMINEE-ID IS NOT = ' '
+              MOVE 'NOM-ID' TO ERROR-FIELD
+            WHEN INPUT-NOM-REL IS NOT = ' '
+              MOVE 'NOM-REL' TO ERROR-FIELD
+            WHEN OTHER
+              MOVE 'ERROR NUMBERS' TO ERROR-FIELD
+           END-EVALUATE.
+           MOVE INPUT-ACC-INC TO ERROR-ACC-INC.
+           MOVE INPUT-NOMINEE-ID  TO ERROR-NOMINEE-ID.
+           MOVE INPUT-DOB TO ERROR-DOB.
+           MOVE INPUT-NOM-REL TO ERROR-NOM-REL.
+           WRITE ERRORRECORD.
+           IF FS3-SUC
+              DISPLAY 'ERROR WRITE COMPLETD'
+           ELSE
+              DISPLAY 'ERROR WRITE ' WS-FS3
+           END-IF.
+       2300-ERROR-EXIT.
+           EXIT.
+       2400-ARRAY-PARA.
+           ADD 1 TO WS-SUB.
+           MOVE OUTPUT-ACC-INC TO AS-ACC-INC(WS-SUB).
+           MOVE OUTPUT-NOMINEE-ID  TO AS-NOMINEE-ID(WS-SUB).
+           MOVE OUTPUT-DOB     TO AS-DOB(WS-SUB).
+           MOVE OUTPUT-NOM-REL TO AS-NOM-REL(WS-SUB).
+           MOVE OUTPUT-CLAIM-ELIG TO AS-CLAIM-ELIG(WS-SUB).
+           IF AS-CLAIM-ELIG(WS-SUB) = 'Y'
+              PERFORM 2500-ELIG-PARA THRU 2500-ELIG-EXIT
+           ELSE
+              PERFORM 2600-NONELIG-PARA THRU 2600-NONELIG-EXIT
+           END-IF.
+       2400-ARRAY-EXIT.
+           EXIT.
+       2500-ELIG-PARA.
+           MOVE WS-ARRAY(WS-SUB) TO OUTPUTRECORD1.
+           WRITE OUTPUTRECORD1.
+           IF FS4-SUC
+              DISPLAY 'ELIGIBLE PARA WRITE '
+           ELSE
+              DISPLAY 'ELIGILE PARA WRITE ERROR' WS-FS4
+           END-IF.
+       2500-ELIG-EXIT.
+           EXIT.
+       2600-NONELIG-PARA.
+           MOVE WS-ARRAY(WS-SUB) TO OUTPUTRECORD2.
+           WRITE OUTPUTRECORD2.
+           IF FS5-SUC
+              DISPLAY 'NONELIGIBLE PARA WRITE '
+           ELSE
+              DISPLAY 'NONELIGILE PARA WRITE ERROR' WS-FS5
+           END-IF.
+       2600-NONELIG-EXIT.
+           EXIT.
+       3000-CLOS-PARA.
+           IF  FS1-SUC AND FS2-SUC AND FS3-SUC AND FS4-SUC AND FS5-SUC
+            DISPLAY 'CLOSE OVER'
+           ELSE
+            DISPLAY 'CLOSE EROR' WS-FS1, WS-FS2, WS-FS3, WS-FS4, WS-FS5
+           END-IF.
+       3000-CLOS-EXIT.
+           EXIT.
+       0000-MAIN-EXIT.
+           EXIT.
+

@@ -1,0 +1,225 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. CA1B060.
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+              SELECT EMP1 ASSIGN TO INPOLPS
+              ORGANIZATION IS SEQUENTIAL
+              ACCESS IS SEQUENTIAL
+              FILE STATUS IS WS-FS1.
+              SELECT EMP2 ASSIGN TO OUTPOLKS
+              ORGANIZATION IS INDEXED
+              ACCESS MODE IS SEQUENTIAL
+              RECORD KEY IS OPOL-NUM
+              FILE STATUS IS WS-FS2.
+              SELECT EMP3 ASSIGN TO ERRPOLPS
+              ORGANIZATION IS SEQUENTIAL
+              ACCESS IS SEQUENTIAL
+              FILE STATUS IS WS-FS3.
+       DATA DIVISION.
+       FILE SECTION.
+       FD EMP1.
+       01 INREC.
+            05 POL-NUM PIC X(5).
+            05 FILLER PIC X(1).
+            05 POL-TERM PIC 9(2).
+            05 FILLER PIC  X(1).
+            05 POL-LOB PIC X(7).
+            05 FILLER PIC X(1).
+            05 POL-AMT PIC 9(5).9(2).
+            05 FILLER PIC X(1).
+            05 POL-STATUS PIC X(7).
+            05 PIC X(47) VALUE ALL SPACES.
+       FD EMP2.
+       01 OUTREC.
+            05 OPOL-NUM PIC X(5).
+            05 FILLER PIC X(1).
+            05 OPOL-TERM PIC 9(2).
+            05 FILLER PIC X(1).
+            05 OPOL-LOB PIC X(7).
+            05 FILLER PIC X(1).
+            05 OPOL-AMT PIC 9(5).9(2).
+            05 FILLER PIC X(1).
+            05 OPOL-STATUS PIC X(7).
+            05 FILLER PIC X(1).
+            05 OPOL-SUM PIC 9(6).9(2).
+            05 FILLER PIC X(1).
+            05 OPOL-LEVEL PIC X(6).
+            05 FILLER PIC X(1).
+            05 OPOL-RISK PIC X(1).
+            05 PIC X(28) VALUE ALL SPACES.
+       FD EMP3.
+       01 ERRREC.
+            05 EPOL-NUM PIC X(5).
+            05 FILLER PIC X(1).
+            05 EPOL-TERM PIC 9(2).
+            05 FILLER PIC X(1).
+            05 EPOL-LOB PIC X(7).
+            05 FILLER PIC X(1).
+            05 EPOL-AMT PIC 9(5).9(2).
+            05 FILLER PIC X(1).
+            05 EPOL-STATUS PIC X(7).
+            05 PIC X(47) VALUE ALL SPACES.
+       WORKING-STORAGE SECTION.
+       01 HDR.
+            05 HPOL-NUM PIC X(05) VALUE 'P-NUM'.
+            05  FILLER PIC X(1) VALUE ' '.
+            05 HPOL-TERM PIC X(06) VALUE 'P-TERM'.
+            05 FILLER PIC X(1) VALUE ' '.
+            05 HPOL-LOB PIC X(05) VALUE 'P-LOB'.
+            05 FILLER PIC X(1) VALUE ' '.
+            05 HPOL-AMT PIC X(05) VALUE 'P-AMT'.
+            05 FILLER PIC X(1) VALUE ' '.
+            05 HPOL-STATUS PIC X(08) VALUE 'P-STATUS'.
+            05 FILLER PIC X(1) VALUE ' '.
+            05 HPOL-SUM PIC X(05) VALUE 'P-SUM'.
+            05 FILLER PIC X(1) VALUE ' '.
+            05 HPOL-LEVEL PIC X(08) VALUE 'PO-LEVEL'.
+            05 FILLER PIC X(1) VALUE ' '.
+            05 HPOL-RISK PIC X(06) VALUE 'P-RISK'.
+            05 PIC X(25) VALUE ALL SPACES.
+       01 WS-SUB PIC 9(2).
+       01 WS-FS1 PIC X(2).
+            88 FS1-SUC VALUE '00'.
+            88 FS1-EOD VALUE '10'.
+       01 WS-FS2 PIC X(2).
+            88 FS2-SUC VALUE '00'.
+       01 WS-FS3 PIC X(2).
+            88 FS3-SUC VALUE '00'.
+       01 WS-AMT PIC 9(5)V9(2).
+       01 WS-SUM PIC 9(6)V9(2).
+       01 WS-TERM PIC 9(2).
+       01 WS-TAB.
+          05 WS-ARRAY OCCURS 10 TIMES.
+            06 A-NUM PIC X(5).
+            06 FILLER PIC X(1).
+            06 A-TERM PIC 9(2).
+            06 FILLER PIC X(1).
+            06 A-LOB PIC X(7).
+            06 FILLER PIC X(1).
+            06 A-AMT PIC 9(5).9(2).
+            06 FILLER PIC X(1).
+            06 A-STATUS PIC X(7).
+            06 FILLER PIC X(1).
+            06 A-SUM PIC 9(6).9(2).
+            06 FILLER PIC X(1).
+            06 A-LEVEL PIC X(6).
+            06 FILLER PIC X(1).
+            06 A-RISK PIC X(1).
+            06 PIC X(28) VALUE ALL SPACES.
+       PROCEDURE DIVISION.
+            PERFORM 1000-OPEN-PARA THRU 1000-OPEN-EXIT.
+            PERFORM 2000-READ-PARA THRU 2000-READ-EXIT UNTIL FS1-EOD.
+            PERFORM 3000-CLOS-PARA THRU 3000-CLOS-EXIT.
+            STOP RUN.
+       1000-OPEN-PARA.
+            OPEN INPUT EMP1.
+            OPEN OUTPUT EMP2.
+            OPEN OUTPUT EMP3.
+            IF FS1-SUC AND FS2-SUC AND FS3-SUC
+               DISPLAY 'OPEN OVER'
+            ELSE
+               DISPLAY 'OPEN ERROR' WS-FS1 ',' WS-FS2 ',' WS-FS3
+            END-IF.
+            MOVE ALL SPACES TO OUTREC.
+            MOVE HDR TO OUTREC.
+            WRITE OUTREC.
+            MOVE ALL SPACES TO OUTREC.
+       1000-OPEN-EXIT.
+            EXIT.
+       2000-READ-PARA.
+            READ EMP1.
+            IF FS1-SUC
+               DISPLAY 'READ SUCCCESS'
+               PERFORM 2000-VALID-PARA THRU 2000-VALID-EXIT
+            ELSE
+               DISPLAY 'READ ERROR' WS-FS1
+            END-IF.
+       2000-READ-EXIT.
+            EXIT.
+       2000-VALID-PARA.
+            EVALUATE TRUE
+              WHEN POL-LOB IS NOT = ' ' AND POL-STATUS = 'ACTIVE' OR
+                    POL-STATUS = 'EXPIRE' AND POL-TERM IS NUMERIC AND
+                    POL-AMT(1:5) IS NUMERIC AND POL-AMT(7:2) IS NUMERIC
+                 DISPLAY 'VALIDATION PASS'
+                 PERFORM 2000-WRT-PARA THRU 2000-WRT-EXIT
+              WHEN OTHER
+                 DISPLAY 'VALIDATION FAIL'
+                 PERFORM ERR-WRT-PARA THRU ERR-WRT-EXIT
+              END-EVALUATE.
+       2000-VALID-EXIT.
+            EXIT.
+       2000-WRT-PARA.
+            ADD 1 TO WS-SUB.
+            MOVE POL-NUM TO A-NUM(WS-SUB).
+            MOVE POL-TERM TO A-TERM(WS-SUB).
+            MOVE POL-LOB TO A-LOB(WS-SUB).
+            MOVE POL-AMT TO A-AMT(WS-SUB).
+            MOVE POL-STATUS TO A-STATUS(WS-SUB).
+            EVALUATE TRUE
+              WHEN A-STATUS(WS-SUB) IS = 'ACTIVE' AND A-TERM(WS-SUB) < 1
+                MOVE 'LOW' TO A-LEVEL(WS-SUB)
+              WHEN A-STATUS(WS-SUB) IS = 'ACTIVE' AND A-TERM(WS-SUB) = 1
+                MOVE 'MEDIUM' TO A-LEVEL(WS-SUB)
+              WHEN A-STATUS(WS-SUB) IS = 'ACTIVE' AND A-TERM(WS-SUB) > 1
+                MOVE 'HIGH' TO A-LEVEL(WS-SUB)
+              WHEN OTHER
+                MOVE SPACES TO A-LEVEL(WS-SUB)
+            END-EVALUATE.
+            EVALUATE TRUE
+              WHEN A-LOB(WS-SUB) IS = 'LIFE'
+                MOVE 'H' TO A-RISK(WS-SUB)
+              WHEN A-LOB(WS-SUB) IS = 'HEALTH'
+                MOVE 'H' TO A-RISK(WS-SUB)
+              WHEN A-LOB(WS-SUB) IS = 'CHILD'
+                MOVE 'M' TO A-RISK(WS-SUB)
+              WHEN A-LOB(WS-SUB) IS = 'GENERAL'
+                MOVE 'I' TO A-RISK(WS-SUB)
+            END-EVALUATE.
+            MOVE A-AMT(WS-SUB) TO WS-AMT.
+            MOVE A-TERM(WS-SUB) TO WS-TERM.
+            CALL 'CA21B060' USING WS-AMT, WS-TERM, WS-SUM .
+            MOVE WS-SUM TO A-SUM(WS-SUB).
+            MOVE A-NUM(WS-SUB) TO OPOL-NUM.
+            MOVE A-LOB(WS-SUB) TO OPOL-LOB.
+            MOVE A-TERM(WS-SUB) TO OPOL-TERM.
+            MOVE A-AMT(WS-SUB) TO OPOL-AMT.
+            MOVE A-STATUS(WS-SUB) TO OPOL-STATUS.
+            MOVE A-SUM(WS-SUB) TO OPOL-SUM.
+            MOVE A-LEVEL(WS-SUB) TO OPOL-LEVEL.
+            MOVE A-RISK(WS-SUB) TO OPOL-RISK.
+            WRITE OUTREC.
+            IF FS2-SUC
+               DISPLAY 'WRITE COMPLTED'
+            ELSE
+               DISPLAY 'WRITE ERROR' WS-FS2
+            END-IF.
+       2000-WRT-EXIT.
+            EXIT.
+       ERR-WRT-PARA.
+            MOVE A-NUM(WS-SUB) TO EPOL-NUM.
+            MOVE A-LOB(WS-SUB) TO EPOL-LOB.
+            MOVE A-TERM(WS-SUB) TO EPOL-TERM.
+            MOVE A-AMT(WS-SUB) TO EPOL-AMT.
+            MOVE A-STATUS(WS-SUB) TO EPOL-STATUS.
+            WRITE ERRREC.
+            IF FS3-SUC
+               DISPLAY 'ERRWRITE COMPLTED'
+            ELSE
+               DISPLAY 'ERR WRITE ERROR' WS-FS3
+            END-IF.
+       ERR-WRT-EXIT.
+            EXIT.
+       3000-CLOS-PARA.
+            CLOSE EMP1.
+            CLOSE EMP2.
+            CLOSE EMP3.
+            IF FS1-SUC AND FS2-SUC AND FS3-SUC
+               DISPLAY 'CLOSE OVER'
+            ELSE
+               DISPLAY 'CLOSE ERROR' WS-FS1 ',' WS-FS2 ',' WS-FS3
+            END-IF.
+       3000-CLOS-EXIT.
+            EXIT.
+

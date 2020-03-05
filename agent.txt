@@ -1,0 +1,145 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. CC11G060.
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+            SELECT EMP1 ASSIGN TO  INPAGTPS
+            ORGANIZATION IS SEQUENTIAL
+            ACCESS IS SEQUENTIAL
+            FILE STATUS IS WS-FS1.
+            SELECT EMP2 ASSIGN TO  OUTAGTKS
+            ORGANIZATION IS INDEXED
+            ACCESS IS SEQUENTIAL
+            RECORD KEY IS OAGENT-CODE
+            FILE STATUS IS WS-FS2.
+       DATA DIVISION.
+       FILE SECTION.
+       FD EMP1.
+       01 INP-EMP-REC.
+            05 AGENT-CODE PIC X(5).
+            05 FILLER PIC X(1).
+            05 POL-COUNT PIC 9(3).
+            05 FILLER PIC X(1).
+            05 AGENT-STATUS PIC X(8).
+            05 FILLER PIC X(1).
+            05 POL-TYPE PIC X(9).
+            05 FILLER PIC X(1).
+            05 COMM PIC 9(03).9(2).
+            05 PIC X(45) VALUE ALL SPACES.
+       FD EMP2.
+       01 OUT-EMP-REC.
+            05 OAGENT-CODE PIC X(5).
+            05 FILLER PIC X(1).
+            05 OPOL-COUNT PIC 9(3).
+            05 FILLER PIC X(1).
+            05 OAGENT-STATUS PIC X(8).
+            05 FILLER PIC X(1).
+            05 OPOL-TYPE PIC X(9).
+            05 FILLER PIC X(1).
+            05 OCOMM PIC 9(03).9(2).
+            05 FILLER PIC X(1).
+            05 TOTAL-COMM PIC  9(7).9(2).
+            05 FILLER PIC X(1).
+            05 TOTAL-GRADE PIC X(9).
+            05 PIC X(24) VALUE ALL SPACES.
+       WORKING-STORAGE SECTION.
+       01 HEADER1.
+            05 HEADER PIC X(80) VALUE ALL SPACES.
+       01 WS-FS1  PIC X(02).
+            88 FS1-SUC VALUE '00'.
+            88 FS1-EOF VALUE '10'.
+       01 WS-FS2 PIC X(02).
+            88 FS2-SUC VALUE '00'.
+       01 WS-POL-COUNT PIC  9(3).
+       01 WS-POL-COMM PIC  9(3)V9(2).
+       01 WS-TOT-COMM PIC  9(7)V9(2).
+       PROCEDURE DIVISION.
+            PERFORM 1000-INTIAL-PARA THRU 1000-INTIAL-PARA-EXIT.
+            PERFORM 1000-OPEN-PARA THRU 1000-OPEN-PARA-EXIT.
+            PERFORM 2000-READ-PARA THRU 2000-READ-PARA-EXIT
+            UNTIL FS1-EOF.
+            PERFORM 3000-CLOS-PARA THRU 3000-CLOS-PARA-EXIT.
+            STOP RUN.
+       1000-INTIAL-PARA.
+            INITIALIZE WS-FS1.
+            INITIALIZE WS-FS2.
+       1000-INTIAL-PARA-EXIT.
+            EXIT.
+       1000-OPEN-PARA.
+            OPEN INPUT EMP1.
+            OPEN OUTPUT EMP2.
+            IF FS1-SUC AND FS2-SUC
+               DISPLAY 'OPEN OVER'
+            ELSE
+               DISPLAY 'OPEN ERROR' WS-FS1 , WS-FS2
+            END-IF.
+            MOVE 'AGT-CODE POL-COUNT AGT-STATUS POL-TYPE COMM ' TO
+                                                             HEADER1.
+            DISPLAY HEADER1.
+            MOVE HEADER1 TO OUT-EMP-REC.
+            WRITE OUT-EMP-REC.
+            MOVE ALL SPACES TO OUT-EMP-REC.
+       1000-OPEN-PARA-EXIT.
+            EXIT.
+       2000-READ-PARA.
+            READ EMP1.
+            IF FS1-SUC
+               DISPLAY 'READ SUCCESS'
+               PERFORM 2000-VALID-PARA THRU 2000-VALID-PARA-EXIT
+            ELSE
+               DISPLAY 'READ ERROR' WS-FS1
+            END-IF.
+       2000-READ-PARA-EXIT.
+            EXIT.
+       2000-VALID-PARA.
+            EVALUATE TRUE
+             WHEN POL-COUNT IS NUMERIC AND AGENT-STATUS IS = 'ACTIVE' OR
+               'INACTIVE' AND POL-TYPE IS NOT = ' ' AND COMM(1:3) IS
+               NUMERIC AND COMM(4:2) IS NUMERIC
+                DISPLAY 'VALIDATION PASS'
+                PERFORM 2000-WRT-PARA THRU 2000-WRT-PARA-EXIT
+             WHEN OTHER
+                DISPLAY 'VALIDATION FAIL'
+                CONTINUE
+            END-EVALUATE.
+       2000-VALID-PARA-EXIT.
+            EXIT.
+       2000-WRT-PARA.
+            EVALUATE TRUE
+              WHEN AGENT-STATUS IS = 'INACTIVE'
+                   CONTINUE
+              WHEN AGENT-STATUS IS = 'ACTIVE' AND POL-COUNT < 300
+                   MOVE 'AVERAGE' TO TOTAL-GRADE
+              WHEN AGENT-STATUS IS = 'ACTIVE' AND POL-COUNT = 300
+                   MOVE 'GOOD' TO TOTAL-GRADE
+              WHEN AGENT-STATUS IS = 'ACTIVE' AND POL-COUNT > 300
+                   MOVE 'EXCELLENT' TO TOTAL-GRADE
+            END-EVALUATE.
+            MOVE POL-COUNT TO WS-POL-COUNT.
+            MOVE COMM TO WS-POL-COMM.
+            CALL 'CA21G060' USING WS-POL-COUNT , WS-POL-COMM ,
+                                      WS-TOT-COMM.
+            MOVE WS-TOT-COMM TO TOTAL-COMM.
+            MOVE AGENT-CODE TO OAGENT-CODE.
+            MOVE POL-COUNT TO OPOL-COUNT.
+            MOVE AGENT-STATUS TO OAGENT-STATUS.
+            MOVE POL-TYPE TO OPOL-TYPE.
+            MOVE COMM TO OCOMM.
+            WRITE OUT-EMP-REC.
+            IF FS2-SUC
+               DISPLAY 'WRIE COMPLETED'
+            ELSE
+               DISPLAY 'WRITE ERROR' WS-FS2
+            END-IF.
+       2000-WRT-PARA-EXIT.
+            EXIT.
+       3000-CLOS-PARA.
+            CLOSE EMP1 CLOSE EMP2.
+            IF FS1-SUC AND FS2-SUC
+               DISPLAY  'CLOSE OVER'
+            ELSE
+               DISPLAY 'CLOSE ERROR' WS-FS1 , WS-FS2
+            END-IF.
+       3000-CLOS-PARA-EXIT.
+            EXIT.
+

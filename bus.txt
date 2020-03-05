@@ -1,0 +1,133 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. CA11G060.
+      *
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+      *
+           SELECT  BI001-BUS   ASSIGN TO INPUTKS
+           ORGANIZATION        IS INDEXED
+           ACCESS              IS RANDOM
+           RECORD KEY          BI001-BUS-NO
+           FILE STATUS         IS WS-FS2.
+      *
+           SELECT  BI002-BUS   ASSIGN TO INPUTPS
+           ORGANIZATION        IS SEQUENTIAL
+           ACCESS              IS SEQUENTIAL
+           FILE STATUS         IS WS-FS1.
+           SELECT  BO001-BUS   ASSIGN TO OUTPUTPS
+           ORGANIZATION        IS SEQUENTIAL
+           ACCESS              IS SEQUENTIAL
+           FILE STATUS         IS WS-FS3.
+      *
+       DATA DIVISION.
+       FILE SECTION.
+      *
+       FD BI001-BUS.
+       01 BI001-BUS-RECORD.
+           05 BI001-BUS-NO                   PIC X(3).
+           05 FILLER                         PIC X(1).
+           05 BI001-BUS-ROUTE                PIC X(10).
+           05 FILLER                         PIC X(1).
+           05 BI001-BUS-FARE                 PIC 9(2).
+           05 FILLER                         PIC X(63) VALUE ALL SPACES.
+      *
+       FD BI002-BUS.
+       01 BI002-BUS-RECORD.
+           05 BI002-BUS-NO                   PIC X(3).
+           05 FILLER                         PIC X(1).
+           05 BI002-BUS-ROUTE                PIC X(10).
+           05 FILLER                         PIC X(1).
+           05 BI002-BUS-FARE                 PIC 9(2).
+           05 FILLER                         PIC X(1).
+           05 BI002-BUS-OPERATION            PIC X(1).
+           05 FILLER                         PIC X(61) VALUE ALL SPACES.
+       FD BO001-BUS.
+       01 BO001-BUS-RECORD.
+           05 BO001-BUS-NO                   PIC X(3).
+           05 FILLER                         PIC X(1).
+           05 BO001-BUS-ROUTE                PIC X(10).
+           05 FILLER                         PIC X(1).
+           05 BO001-BUS-FARE                 PIC 9(2).
+           05 FILLER                         PIC X(63) VALUE ALL SPACES.
+
+       WORKING-STORAGE SECTION.
+       01 WS-FS1                             PIC X(2).
+           88 FS1-SUC                        VALUE '00'.
+           88 FS1-EOF                        VALUE '10'.
+       01 WS-FS2                             PIC X(2).
+           88 FS2-SUC                        VALUE '00'.
+       01 WS-FS3                             PIC X(2).
+           88 FS3-SUC                        VALUE '00'.
+       PROCEDURE DIVISION.
+       0000-MAIN-PARA.
+           PERFORM 1000-INTIAL-PARA THRU 1000-INTIAL-EXIT.
+           PERFORM 1100-OPEN-PARA   THRU 1100-OPEN-EXIT.
+           PERFORM 2000-READ-PARA   THRU 2000-READ-EXIT UNTIL FS1-EOF.
+           PERFORM 3000-CLOS-PARA   THRU 3000-CLOS-EXIT.
+           STOP RUN.
+       1000-INTIAL-PARA.
+           INITIALIZE WS-FS1.
+           INITIALIZE WS-FS2.
+       1000-INTIAL-EXIT.
+           EXIT.
+       1100-OPEN-PARA.
+           OPEN I-O   BI001-BUS.
+           OPEN INPUT  BI002-BUS.
+           OPEN OUTPUT BO001-BUS.
+           MOVE SPACES TO BO001-BUS-RECORD.
+           IF FS1-SUC AND FS2-SUC AND FS3-SUC
+             DISPLAY 'OPEN BOTH FILES'
+           ELSE
+             DISPLAY 'OPEN ERROR' WS-FS1, WS-FS2, WS-FS3
+           END-IF.
+       1100-OPEN-EXIT.
+           EXIT.
+       2000-READ-PARA.
+           READ BI002-BUS.
+           IF FS1-SUC
+            DISPLAY 'READ SUCCESS'
+            PERFORM 2100-WRITE-PARA THRU 2100-WRITE-EXIT
+           ELSE
+            DISPLAY 'READ ERROR' WS-FS1
+           END-IF.
+       2000-READ-EXIT.
+           EXIT.
+       2100-WRITE-PARA.
+           MOVE BI002-BUS-NO TO BI001-BUS-NO
+           READ BI001-BUS
+           IF FS2-SUC
+              DISPLAY 'KSDS READ SUCCESS'
+           ELSE
+              DISPLAY 'KSDS FAIL' WS-FS2
+           END-IF.
+           EVALUATE TRUE
+            WHEN BI002-BUS-OPERATION = 'D'
+              DELETE BI001-BUS
+            WHEN BI002-BUS-OPERATION = 'U'
+              MOVE BI001-BUS-RECORD TO BO001-BUS-RECORD
+              WRITE BO001-BUS-RECORD
+              IF FS3-SUC
+                DISPLAY 'UPDATE COMPLETED'
+              ELSE
+                DISPLAY  'ERROR' WS-FS3
+              END-IF
+           END-EVALUATE.
+       2100-WRITE-EXIT.
+           EXIT.
+       3000-CLOS-PARA.
+           CLOSE BI001-BUS BI002-BUS BO001-BUS.
+           IF FS1-SUC AND FS2-SUC AND FS3-SUC
+             DISPLAY 'CLOSE'
+           ELSE
+             DISPLAY 'ERROR ' WS-FS1, WS-FS2, WS-FS3
+           END-IF.
+       3000-CLOS-EXIT.
+           EXIT.
+      *9999-TERM-PARA.
+      *    STOP RUN.
+      *9999-TERM-EXIT.
+      *    EXIT.
+       0000-MAIN-EXIT.
+           EXIT.
+
