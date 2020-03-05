@@ -1,0 +1,278 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID.  CA11L060.
+      *
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+             SELECT INPUTFILE    ASSIGN TO  INPSTDPS
+             ORGANIZATION        IS SEQUENTIAL
+             ACCESS              IS SEQUENTIAL
+             FILE STATUS         IS WS-FS1.
+      *
+             SELECT OUTPUTFILE    ASSIGN TO  AS-OUTSTDES
+             ORGANIZATION        IS SEQUENTIAL
+             ACCESS              IS SEQUENTIAL
+             FILE STATUS         IS WS-FS2.
+      *
+             SELECT ERRORFILE    ASSIGN TO  ERRSTDPS
+             ORGANIZATION        IS SEQUENTIAL
+             ACCESS              IS SEQUENTIAL
+             FILE STATUS         IS WS-FS3.
+      *
+             SELECT EXCELFILE    ASSIGN TO  EXESTDPS
+             ORGANIZATION        IS SEQUENTIAL
+             ACCESS              IS SEQUENTIAL
+             FILE STATUS         IS WS-FS4.
+       DATA DIVISION.
+       FILE SECTION.
+       FD INPUTFILE.
+       01  INPUTRECORD.
+             05 INPUT-STUDENT-NO             PIC X(05).
+             05 FILLER                       PIC X(1).
+             05 INPUT-STUDENT-GEN            PIC X(1).
+             05 FILLER                       PIC X(1).
+             05 INPUT-SUBJECT-1              PIC 9(2).9(2).
+             05 FILLER                       PIC X(1).
+             05 INPUT-SUBJECT-2              PIC 9(2).9(2).
+             05 FILLER                       PIC X(1).
+             05 INPUT-SUBJECT-3              PIC 9(2).9(2).
+             05 FILLER                       PIC X(55) VALUE ALL SPACES.
+      *
+       FD OUTPUTFILE.
+       01  OUTPUTRECORD.
+             05 OUTPUT-STUDENT-NO            PIC X(05).
+             05 FILLER                       PIC X(1).
+             05 OUTPUT-STUDENT-GEN           PIC X(1).
+             05 FILLER                       PIC X(1).
+             05 OUTPUT-SUBJECT-1             PIC 9(2).9(2).
+             05 FILLER                       PIC X(1).
+             05 OUTPUT-SUBJECT-2             PIC 9(2).9(2).
+             05 FILLER                       PIC X(1).
+             05 OUTPUT-SUBJECT-3             PIC 9(2).9(2).
+             05 FILLER                       PIC X(1).
+             05 OUTPUT-TOTAL-MARKS           PIC 9(3).9(2).
+             05 FILLER                       PIC X(1).
+             05 OUTPUT-TOTAL-PER             PIC 9(3).
+             05 FILLER                       PIC X(1).
+             05 OUTPUT-GRADE                 PIC X(01).
+             05 FILLER                       PIC X(1).
+             05 OUTPUT-LEVEL                 PIC X(09).
+             05 FILLER                       PIC X(1).
+             05 OUTPUT-SCHL-ELIG             PIC X(1).
+             05 FILLER                       PIC X(30) VALUE ALL SPACES.
+      *
+       FD ERRORFILE.
+       01 ERRORRECORD.
+             05 ERROR-STUDENT-NO             PIC X(05).
+             05 FILLER                       PIC X(1).
+             05 ERROR-STUDENT-GEN            PIC X(1).
+             05 FILLER                       PIC X(1).
+             05 ERROR-SUBJECT-1              PIC 9(2).9(2).
+             05 FILLER                       PIC X(1).
+             05 ERROR-SUBJECT-2              PIC 9(2).9(2).
+             05 FILLER                       PIC X(1).
+             05 ERROR-SUBJECT-3              PIC 9(2).9(2).
+             05 FILLER                       PIC X(1).
+             05 ERROR-FIELD                  PIC X(15).
+             05 FILLER                       PIC X(39) VALUE ALL SPACES.
+       FD EXCELFILE.
+       01 EXCELRECORD.
+             05 EXCEL-STUDENT-NO             PIC X(5).
+             05 FILLER                       PIC X(1).
+             05 EXCEL-STUDENT-GEN            PIC X(1).
+             05 FILLER                       PIC X(1).
+             05 EXCEL-TOTAL-MARKS            PIC 9(3).9(2).
+             05 FILLER                       PIC X(1).
+             05 EXCEL-TOTAL-PER               PIC ZZZ.
+             05 FILLER                       PIC X(1).
+             05 EXCEL-LEVEL                  PIC X(09).
+             05 FILLER                       PIC X(52) VALUE ALL SPACES.
+       WORKING-STORAGE SECTION.
+       01 WS-FS1                             PIC X(2).
+             88 FS1-SUC                      VALUE '00'.
+             88 FS1-EOF                      VALUE '10'.
+       01 WS-FS2                             PIC X(2).
+             88 FS2-SUC                      VALUE '00'.
+       01 WS-FS3                             PIC X(2).
+             88 FS3-SUC                      VALUE '00'.
+       01 WS-FS4                             PIC X(2).
+             88 FS4-SUC                      VALUE '00'.
+       01 WS-SUBJECT1                        PIC 9(2)V9(2).
+       01 WS-SUBJECT2                        PIC 9(2)V9(2).
+       01 WS-SUBJECT3                        PIC 9(2)V9(2).
+       01 WS-TOTAL-MARKS                     PIC 9(3)V9(2).
+       01 WS-TOTAL-PER                       PIC 9(3).
+       01 WS-SUB                             PIC 9(2).
+       01 HDR                                PIC X(80).
+       01 WS-TABLE.
+           05  WS-ARRAY OCCURS 200 TIMES.
+              10 A-STD-NO                   PIC X(05).
+              10 A-STD-GEN                  PIC X(01).
+              10 A-TOT-MARK                 PIC 9(3).9(2).
+              10 A-TOTAL-PER                PIC 9(3).
+              10 A-LEVEL                    PIC X(09).
+       PROCEDURE DIVISION.
+       0000-MAIN-PARA.
+           PERFORM 1000-INTIAL-PARA THRU 1000-INTIAL-EXIT.
+           PERFORM 1100-OPEN-PARA   THRU 1100-OPEN-EXIT.
+           PERFORM 2000-READ-PARA   THRU 2000-READ-EXIT UNTIL FS1-EOF.
+           PERFORM 3000-CLOS-PARA   THRU 3000-CLOS-EXIT.
+           STOP RUN.
+       1000-INTIAL-PARA.
+           INITIALIZE WS-FS2.
+           INITIALIZE WS-FS1.
+           INITIALIZE WS-FS3.
+           INITIALIZE WS-FS4.
+       1000-INTIAL-EXIT.
+           EXIT.
+       1100-OPEN-PARA.
+           OPEN INPUT INPUTFILE.
+           OPEN OUTPUT OUTPUTFILE.
+           OPEN OUTPUT ERRORFILE.
+           OPEN OUTPUT EXCELFILE.
+           MOVE SPACES TO OUTPUTRECORD.
+           MOVE SPACES TO ERRORRECORD.
+           MOVE SPACES TO EXCELRECORD.
+           MOVE 'STD-NO STD-GEN SUB-1 SUB2 SUB3 ERR-FILED' TO HDR.
+           MOVE HDR TO ERRORRECORD.
+           WRITE ERRORRECORD.
+           MOVE SPACES TO ERRORRECORD.
+           IF FS1-SUC AND FS2-SUC AND FS3-SUC AND FS4-SUC
+              DISPLAY 'OPEN SUCCESS ALL FILES'
+           ELSE
+              DISPLAY 'OPEN ERROR FS1' WS-FS1
+              DISPLAY 'OPEN ERROR FS2' WS-FS2
+              DISPLAY 'OPEN ERROR FS3' WS-FS3
+              DISPLAY 'OPEN ERROR FS4' WS-FS4
+           END-IF.
+       1100-OPEN-EXIT.
+           EXIT.
+       2000-READ-PARA.
+           READ INPUTFILE
+           IF FS1-SUC
+              DISPLAY 'READ SUCCESS'
+              PERFORM 2100-VALID-PARA THRU 2100-VALID-EXIT
+           ELSE
+              DISPLAY 'READ ERROR' WS-FS1
+           END-IF.
+       2000-READ-EXIT.
+           EXIT.
+       2100-VALID-PARA.
+           IF INPUT-STUDENT-NO IS NOT = ' ' AND INPUT-SUBJECT-1(1:2) IS
+               NUMERIC AND INPUT-SUBJECT-1(4:2) IS NUMERIC AND
+               INPUT-SUBJECT-2(1:2) IS NUMERIC AND INPUT-SUBJECT-2(4:2)
+               IS NUMERIC AND INPUT-SUBJECT-3(1:2) IS NUMERIC AND
+               INPUT-SUBJECT-3(4:2) IS NUMERIC
+             DISPLAY 'VALIDATION PASS'
+             PERFORM 2200-WRITE-PARA THRU 2200-WRITE-EXIT
+           ELSE
+             DISPLAY 'VALIDATION FAIL'
+             PERFORM 2300-ERROR-WRITE THRU 2300-ERROR-EXIT
+           END-IF.
+       2100-VALID-EXIT.
+           EXIT.
+       2200-WRITE-PARA.
+           MOVE INPUT-SUBJECT-1    TO WS-SUBJECT1.
+           MOVE INPUT-SUBJECT-2    TO WS-SUBJECT2.
+           MOVE INPUT-SUBJECT-3    TO WS-SUBJECT3.
+           CALL 'CA21L060' USING WS-SUBJECT1, WS-SUBJECT2, WS-SUBJECT3,
+                                 WS-TOTAL-MARKS, WS-TOTAL-PER.
+           MOVE  WS-TOTAL-MARKS    TO   OUTPUT-TOTAL-MARKS.
+           MOVE  WS-TOTAL-PER      TO   OUTPUT-TOTAL-PER.
+           MOVE  INPUT-STUDENT-NO  TO   OUTPUT-STUDENT-NO.
+           MOVE INPUT-STUDENT-GEN  TO   OUTPUT-STUDENT-GEN.
+           MOVE INPUT-SUBJECT-1    TO OUTPUT-SUBJECT-1.
+           MOVE INPUT-SUBJECT-2    TO OUTPUT-SUBJECT-2.
+           MOVE INPUT-SUBJECT-3    TO OUTPUT-SUBJECT-3.
+           EVALUATE TRUE
+             WHEN OUTPUT-TOTAL-PER <= 45
+               MOVE 'D'            TO OUTPUT-GRADE
+               MOVE 'POOR'         TO OUTPUT-LEVEL
+             WHEN OUTPUT-TOTAL-PER > 45 AND OUTPUT-TOTAL-PER <= 65
+               MOVE 'C'            TO OUTPUT-GRADE
+               MOVE 'AVERAGE'      TO OUTPUT-LEVEL
+             WHEN OUTPUT-TOTAL-PER > 65 AND OUTPUT-TOTAL-PER <= 85
+               MOVE 'B'            TO OUTPUT-GRADE
+               MOVE 'GOOD'         TO OUTPUT-LEVEL
+             WHEN OUTPUT-TOTAL-PER > 85
+               MOVE 'A'            TO OUTPUT-GRADE
+               MOVE 'EXCELLENT'    TO OUTPUT-LEVEL
+           END-EVALUATE.
+           EVALUATE TRUE
+             WHEN OUTPUT-GRADE = 'A'  AND OUTPUT-TOTAL-PER > 90
+                MOVE 'Y'           TO  OUTPUT-SCHL-ELIG
+             WHEN OTHER
+                MOVE 'N'           TO OUTPUT-SCHL-ELIG
+           END-EVALUATE.
+           PERFORM 2400-EXCEL-PARA THRU 2400-EXCEL-EXIT.
+           WRITE OUTPUTRECORD.
+           IF FS2-SUC
+              DISPLAY 'WRITE COMPLTED'
+           ELSE
+              DISPLAY 'WRITE ERROR' WS-FS2
+           END-IF.
+       2200-WRITE-EXIT.
+           EXIT.
+       2300-ERROR-WRITE.
+           MOVE  INPUT-STUDENT-NO  TO   ERROR-STUDENT-NO.
+           MOVE INPUT-STUDENT-GEN  TO   ERROR-STUDENT-GEN.
+           MOVE INPUT-SUBJECT-1    TO   ERROR-SUBJECT-1.
+           MOVE INPUT-SUBJECT-2    TO   ERROR-SUBJECT-2.
+           MOVE INPUT-SUBJECT-3    TO   ERROR-SUBJECT-3.
+           EVALUATE TRUE
+             WHEN INPUT-STUDENT-NO  IS = ' '
+                 MOVE 'STD-NO'     TO ERROR-FIELD
+             WHEN INPUT-STUDENT-GEN IS = ' '
+                 MOVE 'STD-GEN'    TO ERROR-FIELD
+             WHEN INPUT-SUBJECT-1 IS NOT NUMERIC
+                 MOVE 'SUBJECT1'   TO ERROR-FIELD
+             WHEN INPUT-SUBJECT-2 IS NOT NUMERIC
+                 MOVE 'SUBJECT2'   TO ERROR-FIELD
+             WHEN INPUT-SUBJECT-3 IS NOT NUMERIC
+                 MOVE 'SUBJECT3'   TO ERROR-FIELD
+           END-EVALUATE.
+           WRITE ERRORRECORD.
+           IF FS3-SUC
+              DISPLAY 'ERROR WRITE '
+           ELSE
+              DISPLAY 'ERROR WRITE ERROR' WS-FS3
+           END-IF.
+       2300-ERROR-EXIT.
+           EXIT.
+       2400-EXCEL-PARA.
+           ADD 1 TO WS-SUB.
+           MOVE  WS-TOTAL-MARKS    TO   A-TOT-MARK(WS-SUB).
+           MOVE  WS-TOTAL-PER      TO   A-TOTAL-PER(WS-SUB).
+           MOVE  OUTPUT-STUDENT-NO  TO   A-STD-NO(WS-SUB).
+           MOVE OUTPUT-STUDENT-GEN  TO   A-STD-GEN(WS-SUB).
+           MOVE OUTPUT-LEVEL      TO A-LEVEL(WS-SUB).
+           EVALUATE TRUE
+             WHEN A-LEVEL(WS-SUB) = 'EXCELLENT'
+              DISPLAY 'EXCELLENT PARA'
+              MOVE  A-TOT-MARK(WS-SUB) TO EXCEL-TOTAL-MARKS
+              MOVE  A-TOTAL-PER(WS-SUB)TO EXCEL-TOTAL-PER
+              MOVE  A-STD-NO(WS-SUB)   TO EXCEL-STUDENT-NO
+              MOVE A-STD-GEN(WS-SUB)   TO EXCEL-STUDENT-GEN
+              MOVE A-LEVEL(WS-SUB)     TO EXCEL-LEVEL
+              WRITE EXCELRECORD
+           END-EVALUATE.
+              IF FS4-SUC
+                 DISPLAY 'EXCEL PARA'
+              ELSE
+                 DISPLAY 'EXCEL ERROR' WS-FS4
+              END-IF.
+       2400-EXCEL-EXIT.
+           EXIT.
+       3000-CLOS-PARA.
+           CLOSE INPUTFILE CLOSE OUTPUTFILE CLOSE ERRORFILE
+           CLOSE EXCELFILE.
+           IF FS1-SUC AND FS2-SUC AND FS3-SUC AND FS4-SUC
+              DISPLAY 'CLOSE'
+           ELSE
+              DISPLAY 'CLOSE ERROR' WS-FS1, WS-FS2, WS-FS3, WS-FS4
+           END-IF.
+       3000-CLOS-EXIT.
+           EXIT.
+       0000-MAIN-EXIT.
+           EXIT.
+

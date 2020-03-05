@@ -1,0 +1,211 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. CA11F060.
+      *
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+      *
+           SELECT    BI001-TRAIN   ASSIGN TO INTRNVSM
+           ORGANIZATION            IS INDEXED
+           ACCESS                  IS RANDOM
+           RECORD KEY              IS BI001-TRAIN-NO
+           FILE STATUS             IS WS-FS1.
+      *
+           SELECT    BI002-BOOKING ASSIGN TO INBKNGPS
+           ORGANIZATION            IS SEQUENTIAL
+           ACCESS                  IS SEQUENTIAL
+           FILE STATUS             IS WS-FS2.
+      *
+           SELECT    BO001-TRAIN   ASSIGN TO OUTTKTPS
+           ORGANIZATION            IS SEQUENTIAL
+           ACCESS                  IS SEQUENTIAL
+           FILE STATUS             IS WS-FS3.
+      *
+       DATA DIVISION.
+       FILE SECTION.
+       FD BI001-TRAIN.
+       01 BI001-TRAIN-RECORD.
+           05 BI001-TRAIN-NO                 PIC 9(5).
+           05 FILLER                         PIC X(1).
+           05 BI001-TRAIN-DEPARTURE          PIC X(11).
+           05 FILLER                         PIC X(1).
+           05 BI001-TRAIN-ARRIVAL            PIC X(11).
+           05 FILLER                         PIC X(1).
+           05 BI001-TRAIN-FARE               PIC 9(3).9(2).
+           05 FILLER                         PIC X(1).
+           05 BI001-TRAIN-COACH              PIC X(3).
+           05 FILLER                         PIC X(1).
+           05 BI001-TRAIN-SEATAVAILBLE       PIC 9(2).
+           05 FILLER                        PIC X(37) VALUE ALL SPACES.
+      *
+       FD BI002-BOOKING.
+       01 BI002-BOOKING-RECORD .
+           05 BI002-BOOKING-NO               PIC X(6).
+           05 FILLER                         PIC X(1).
+           05 BI002-BOOKING-TRAINNO          PIC 9(5).
+           05 FILLER                         PIC X(1).
+           05 BI002-BOOKING-TKTS             PIC 9(2).
+           05 FILLER                         PIC X(1).
+           05 BI002-BOOKING-COACH            PIC X(3).
+           05 FILLER                         PIC X(1).
+           05 BI002-BOOKING-MODE             PIC X(6).
+           05 HI                             PIC X(54) VALUE ALL SPACES.
+      *
+       FD BO001-TRAIN.
+       01 BO001-TRAIN-RECORD.
+           05 BO001-TKT-NO                   PIC X(06).
+           05 FILLER                         PIC X(1).
+           05 BO001-TRAIN-DEPARTURE          PIC X(11).
+           05 FILLER                         PIC X(1).
+           05 BO001-TRAIN-ARRIVAL            PIC X(11).
+           05 FILLER                         PIC X(1).
+           05 BO001-TRAIN-NO-TKTS            PIC 9(2).
+           05 FILLER                         PIC X(1).
+           05 BO001-TRAIN-COACH              PIC X(3).
+           05 FILLER                         PIC X(1).
+           05 BO001-TRAIN-TOTAL-FARE         PIC 9(5).9(2).
+           05 FILLER                         PIC X(1).
+           05 BO001-TRAIN-CONFIRM-STATUS     PIC X(09).
+           05 FILLER                         PIC X(1).
+           05 BO001-TRAIN-NO                 PIC 9(05).
+           05 HELLO                          PIC X(18) VALUE ALL SPACES.
+      *
+       WORKING-STORAGE SECTION.
+       01 WS-TKTNO                           PIC X(06).
+       01 WS-INPUT-FARE                      PIC 9(3)V9(2).
+       01 WS-OUTPUT-FARE                     PIC 9(5)V9(2).
+       01 WS-FS1                             PIC X(02).
+           88 FS1-SUC                        VALUE '00'.
+       01 WS-FS2                             PIC X(02).
+           88 FS2-SUC                        VALUE '00'.
+           88 FS2-EOF                        VALUE '10'.
+       01 WS-FS3                             PIC X(2).
+           88 FS3-SUC                        VALUE '00'.
+       PROCEDURE DIVISION.
+           PERFORM 1000-INTIAL-PARA THRU 1000-INTIAL-EXIT.
+           PERFORM 1100-OPEN-PARA   THRU 1100-OPEN-EXIT.
+           PERFORM 1200-READ-PARA   THRU 1200-READ-EXIT UNTIL FS2-EOF.
+           PERFORM 3000-CLOS-PARA   THRU 3000-CLOS-EXIT.
+           STOP  RUN.
+       1000-INTIAL-PARA.
+           INITIALIZE WS-FS1.
+           INITIALIZE WS-FS2.
+           INITIALIZE WS-FS3.
+       1000-INTIAL-EXIT.
+           EXIT.
+       1100-OPEN-PARA.
+           OPEN INPUT BI002-BOOKING
+                OUTPUT BO001-TRAIN
+                INPUT BI001-TRAIN.
+           IF FS1-SUC AND FS2-SUC AND FS3-SUC
+              DISPLAY 'OPEN ALL FILES'
+           ELSE
+              DISPLAY 'OPEN ERROR WS-FS1' WS-FS1
+              DISPLAY 'OPEN ERROR WS-FS2' WS-FS2
+              DISPLAY 'OPEN ERROR WS-FS3' WS-FS3
+           END-IF.
+       1100-OPEN-EXIT.
+           EXIT.
+       1200-READ-PARA.
+           READ BI002-BOOKING.
+           IF FS2-SUC
+              DISPLAY 'READ SUCCESS'
+              PERFORM 2000-VALID-PARA THRU 2000-VALID-EXIT
+           ELSE
+              DISPLAY 'READ ERROR' WS-FS2
+           END-IF.
+       1200-READ-EXIT.
+           EXIT.
+       2000-VALID-PARA.
+           IF BI002-BOOKING-NO IS NOT = ' ' AND BI002-BOOKING-TRAINNO
+              IS NOT = ' ' AND BI002-BOOKING-TKTS IS NUMERIC
+              AND BI002-BOOKING-COACH = 'AC' OR 'RD' OR 'SLP' AND
+              BI002-BOOKING-MODE = 'AGENT' OR 'ONLINE' OR 'DIRECT'
+            DISPLAY 'VALIDATION PASS'
+            PERFORM 2100-PROCESS-PARA THRU 2100-PROCESS-EXIT
+           ELSE
+            DISPLAY 'VALIDATION FAIL'
+            CONTINUE
+           END-IF.
+       2000-VALID-EXIT.
+           EXIT.
+       2100-PROCESS-PARA.
+           MOVE BI002-BOOKING-TRAINNO TO BI001-TRAIN-NO.
+           READ BI001-TRAIN.
+           IF FS1-SUC
+              DISPLAY 'KSDS READ SUCCESS'
+           ELSE
+              DISPLAY 'KSDS READ ERROR' WS-FS1
+           END-IF.
+           IF BI002-BOOKING-COACH = BI001-TRAIN-COACH
+              DISPLAY 'COACH MATCHED'
+              PERFORM 2200-WRITE-PARA THRU 2200-WRITE-EXIT
+           ELSE
+              DISPLAY 'COACH DOESNT MATCH'
+              PERFORM 2300-WRITE1-PARA THRU 2300-WRITE1-EXIT
+           END-IF.
+           DISPLAY BI001-TRAIN-RECORD.
+           DISPLAY BI002-BOOKING-RECORD.
+       2100-PROCESS-EXIT.
+           EXIT.
+       2200-WRITE-PARA.
+           DISPLAY 'WRITE PARA'.
+           MOVE BI001-TRAIN-FARE TO WS-INPUT-FARE.
+           EVALUATE TRUE
+            WHEN BI002-BOOKING-MODE = 'DIRECT'
+             COMPUTE WS-OUTPUT-FARE = WS-INPUT-FARE * BI002-BOOKING-TKTS
+            WHEN BI002-BOOKING-MODE = 'ONLINE'
+             COMPUTE WS-OUTPUT-FARE = WS-INPUT-FARE * BI002-BOOKING-TKTS
+             + 50
+            WHEN BI002-BOOKING-MODE = 'AGENT'
+             COMPUTE WS-OUTPUT-FARE = WS-INPUT-FARE * BI002-BOOKING-TKTS
+              + (100 * BI002-BOOKING-TKTS)
+           END-EVALUATE.
+           MOVE WS-OUTPUT-FARE TO BO001-TRAIN-TOTAL-FARE.
+           EVALUATE TRUE
+            WHEN BI002-BOOKING-TKTS <= BI001-TRAIN-SEATAVAILBLE
+             MOVE 'CONFIRMED' TO BO001-TRAIN-CONFIRM-STATUS
+             INSPECT BI002-BOOKING-NO   REPLACING ALL 'B' BY 'T'
+            WHEN BI002-BOOKING-TKTS > BI001-TRAIN-SEATAVAILBLE
+             MOVE 'RAC' TO BO001-TRAIN-CONFIRM-STATUS
+             INSPECT BI002-BOOKING-NO REPLACING ALL 'B' BY 'R'
+           END-EVALUATE.
+           MOVE BI002-BOOKING-NO   TO BO001-TKT-NO.
+           PERFORM 2400-OUTPUT-FILE THRU 2400-OUTPUT-EXIT.
+       2200-WRITE-EXIT.
+           EXIT.
+       2300-WRITE1-PARA.
+            MOVE 00 TO BO001-TRAIN-TOTAL-FARE.
+            MOVE 'NOTAV'  TO BO001-TRAIN-CONFIRM-STATUS.
+            MOVE BI002-BOOKING-NO TO BO001-TKT-NO.
+           PERFORM 2400-OUTPUT-FILE THRU 2400-OUTPUT-EXIT.
+       2300-WRITE1-EXIT.
+            EXIT.
+       2400-OUTPUT-FILE.
+            MOVE BI001-TRAIN-DEPARTURE  TO BO001-TRAIN-DEPARTURE.
+            MOVE BI001-TRAIN-ARRIVAL    TO BO001-TRAIN-ARRIVAL.
+            MOVE BI002-BOOKING-TKTS     TO BO001-TRAIN-NO-TKTS.
+            MOVE BI002-BOOKING-COACH    TO BO001-TRAIN-COACH.
+            MOVE BI001-TRAIN-NO         TO BO001-TRAIN-NO.
+            DISPLAY 'RECORD' BO001-TRAIN-RECORD.
+            WRITE BO001-TRAIN-RECORD.
+            IF FS3-SUC
+               DISPLAY 'WRITE COMPLETD'
+            ELSE
+               DISPLAY 'WRITE ERROR' WS-FS3
+            END-IF.
+       2400-OUTPUT-EXIT.
+            EXIT.
+
+       3000-CLOS-PARA.
+            CLOSE BI001-TRAIN BI002-BOOKING BO001-TRAIN.
+            IF FS1-SUC AND FS2-SUC AND FS3-SUC
+               DISPLAY 'CLOSE SUCCESS'
+            ELSE
+              DISPLAY 'CLOS ERROR WS-FS1' WS-FS1
+              DISPLAY 'CLOS ERROR WS-FS2' WS-FS2
+              DISPLAY 'CLOS ERROR WS-FS3' WS-FS3
+            END-IF.
+        3000-CLOS-EXIT.
+            EXIT.
+
