@@ -1,0 +1,192 @@
+      *                     MAIN PROGRAM                              *
+      *****************************************************************
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID.   CA11P013.
+      *****************************************************************
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT BI001-INPKS ASSIGN TO INPPRDPS
+           ORGANIZATION IS INDEXED
+           ACCESS MODE IS SEQUENTIAL
+           RECORD KEY IS BI001-SSNNOA
+           FILE STATUS IS WS-FS1.
+      *
+           SELECT BO001-OUTKS ASSIGN TO OUTPRDPS
+           ORGANIZATION IS INDEXED
+           ACCESS MODE IS RANDOM
+           RECORD KEY IS BO001-SSNNOA
+           FILE STATUS IS WS-FS2.
+      *****************************************************************
+       DATA DIVISION.
+       FILE SECTION.
+       FD BI001-INPKS
+           LABEL RECORDS ARE STANDARD
+           RECORD CONTAINS 80 CHARACTERS
+           BLOCK CONTAINS  10 RECORDS.
+       01 BI001-REC.
+         05 BI001-SSNNO.
+           10 BI001-SSNNOA                  PIC X(05).
+           10 BI001-SSNNOB                  PIC X(06).
+         05 FILLER                          PIC X(01).
+         05 BI001-CN                        PIC X(20).
+         05 FILLER                          PIC X(01).
+         05 BI001-SP                        PIC 9(10).9(03).
+         05 FILLER                          PIC X(01).
+         05 BI001-TS                        PIC X(08).
+         05 FILLER                          PIC X(24).
+      *
+       FD BO001-OUTKS
+           LABEL RECORDS ARE STANDARD
+           RECORD CONTAINS 80 CHARACTERS
+           BLOCK CONTAINS  10 RECORDS.
+       01 BO001-REC.
+         05 BO001-SSNNO.
+           10 BO001-SSNNOA                  PIC X(05).
+           10 BO001-SSNNOB                  PIC X(06).
+         05 FILLER                          PIC X(01).
+         05 BO001-CN                        PIC X(20).
+         05 FILLER                          PIC X(01).
+         05 BO001-SP                        PIC 9(12).9(03).
+         05 FILLER                          PIC X(01).
+         05 BO001-TS                        PIC X(08).
+         05 FILLER                          PIC X(22).
+      *******
+       WORKING-STORAGE SECTION.
+         77 WS-FS1                          PIC X(02).
+         77 WS-FS2                          PIC X(02).
+         77 WS-EOF                          PIC X(01) VALUE 'N'.
+         77 WS-SSNNO                        PIC X(11).
+         77 WS-SP                           PIC 9(10)V9(03).
+         77 WS-S                            PIC 9(03) VALUE 001.
+       01 TAB.
+         02 TAB-REC        OCCURS 999 TIMES.
+           05 TAB-SSNNO                     PIC X(11).
+           05 TAB-CN                        PIC X(20).
+           05 TAB-SP                        PIC 9(12).9(02).
+           05 TAB-TS                        PIC X(08).
+      *****************************************************************
+       PROCEDURE DIVISION.
+       0000-MAIN-PARA.
+           PERFORM 1000-OPEN-PARA THRU 1000-OPEN-PARA-EXIT.
+           PERFORM 2000-OPERATION-PARA THRU 2000-OPERATION-PARA-EXIT
+                   UNTIL WS-EOF = 'Y'.
+           PERFORM 3000-CLOSE-PARA THRU 3000-CLOSE-PARA-EXIT.
+           STOP RUN.
+       0000-MAIN-PARA-EXIT.
+           EXIT.
+       1000-OPEN-PARA.
+           OPEN INPUT BI001-INPKS.
+           IF WS-FS1 = '00'
+             DISPLAY 'OPEN I/P KSDS SUCCESS....'
+           ELSE
+             DISPLAY 'OPEN I/P KSDS ERROR... : ' WS-FS1
+             STOP RUN
+           END-IF.
+           OPEN I-O BO001-OUTKS.
+           IF WS-FS2 = '00'
+             DISPLAY 'OPEN O/P KSDS SUCCESS IN I-O MODE....'
+           ELSE IF WS-FS2 = '35'
+             OPEN OUTPUT BO001-OUTKS
+             IF WS-FS2 = '00'
+               DISPLAY 'OPEN O/P KSDS SUCCESS IN OUTPUT MODE...'
+             ELSE
+               DISPLAY 'OPEN O/P KSDS ERROR IN OUTPUT MODE : ' WS-FS2
+               PERFORM 3000-CLOSE-PARA
+               STOP RUN
+             END-IF
+           ELSE
+             DISPLAY 'OPEN O/P KSDS ERROR... : ' WS-FS2
+             PERFORM 3000-CLOSE-PARA
+             STOP RUN
+             STOP RUN
+           END-IF
+           END-IF.
+       1000-OPEN-PARA-EXIT.
+           EXIT.
+       2000-OPERATION-PARA.
+           MOVE SPACES TO BI001-REC.
+           MOVE SPACES TO BO001-REC.
+           MOVE SPACES TO TAB-REC(WS-S).
+           READ BI001-INPKS AT END DISPLAY 'END OF FILE...'.
+           IF WS-FS1 = '00'
+             DISPLAY 'READ SUCCESS.....'
+             PERFORM 2100-VAL-PARA THRU 2100-VAL-PARA-EXIT
+           ELSE
+             DISPLAY 'READ ERROR OR EOF.... : ' WS-FS1
+             MOVE 'Y' TO WS-EOF
+           END-IF.
+       2000-OPERATION-PARA-EXIT.
+           EXIT.
+       2100-VAL-PARA.
+           IF BI001-SSNNO NOT = '00000000000'
+             IF BI001-CN NOT = SPACES
+               IF BI001-SP NOT = SPACES AND
+                  BI001-SP(1:10) IS NUMERIC AND
+                  BI001-SP(12:3) IS NUMERIC
+                 IF BI001-TS NOT = SPACES
+                   PERFORM 2110-PROC-PARA THRU 2110-PROC-PARA-EXIT
+                   ADD 1 TO WS-S
+                 ELSE
+                   DISPLAY 'INVALID TS..'
+                 END-IF
+               ELSE
+                 DISPLAY 'INVALID NSP..'
+               END-IF
+             ELSE
+               DISPLAY 'INVALID CN..'
+             END-IF
+           ELSE
+             DISPLAY 'INVALID SSNNO..'
+           END-IF.
+       2100-VAL-PARA-EXIT.
+           EXIT.
+       2110-PROC-PARA.
+           STRING
+                 BI001-SSNNO(1:3) DELIMITED BY SIZE
+                 '-'              DELIMITED BY SIZE
+                 BI001-SSNNO(4:2) DELIMITED BY SIZE
+                 '-'              DELIMITED BY SIZE
+                 BI001-SSNNO(6:4) DELIMITED BY SIZE
+                 INTO TAB-SSNNO(WS-S)
+           END-STRING.
+           INSPECT BI001-TS REPLACING ALL '&' BY ' '.
+           INSPECT BI001-TS REPLACING ALL '$' BY ' '.
+           INSPECT BI001-TS REPLACING ALL '@' BY ' '.
+           INSPECT BI001-TS REPLACING ALL '!' BY ' '.
+           INSPECT BI001-TS REPLACING ALL '#' BY ' '.
+           MOVE BI001-TS TO TAB-TS(WS-S).
+           MOVE BI001-SP TO WS-SP.
+           COMPUTE TAB-SP(WS-S) = (WS-SP * 4.5) / 25.5 + WS-SP.
+           MOVE BI001-CN TO TAB-CN(WS-S).
+           DISPLAY 'SP : ' TAB-SP(WS-S).
+           IF TAB-SP(WS-S) > 000000045000
+             MOVE TAB-SSNNO(WS-S) TO BO001-SSNNO
+             MOVE TAB-CN(WS-S) TO BO001-CN
+             MOVE TAB-SP(WS-S) TO BO001-SP
+             MOVE TAB-TS(WS-S) TO BO001-TS
+             WRITE BO001-REC
+             IF WS-FS2 = '00'
+               DISPLAY 'WRITE SUCCESS IN KSDS FILE...'
+             ELSE
+               DISPLAY 'WRITE ERROR IN KSDS FILE... : ' WS-FS2
+             END-IF
+           END-IF.
+       2110-PROC-PARA-EXIT.
+           EXIT.
+       3000-CLOSE-PARA.
+           CLOSE BI001-INPKS.
+           IF WS-FS1 = '00'
+             DISPLAY 'CLOSE I/P KS SUCCESS...'
+           ELSE
+             DISPLAY 'CLOSE I/P KS ERROR : ' WS-FS1
+           END-IF.
+           CLOSE BO001-OUTKS.
+           IF WS-FS2 = '00'
+             DISPLAY 'CLOSE O/P KS SUCCESS...'
+           ELSE
+             DISPLAY 'CLOSE O/P KS ERROR : ' WS-FS2
+           END-IF.
+       3000-CLOSE-PARA-EXIT.
+           EXIT.
+
